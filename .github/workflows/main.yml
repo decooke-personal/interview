@@ -27,4 +27,4 @@ jobs:
         with:
           context: "{{defaultContext}}:sre/app"
           push: true
-          tags: decooke-personal/interview/backend-api:latest
+          tags: ghcr.io/decooke-personal/interview/backend-api:latest
