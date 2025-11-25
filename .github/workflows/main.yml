@@ -25,6 +25,6 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: "{{defaultContext}}:app"
+          context: "{{defaultContext}}:sre/app"
           push: true
           tags: decooke-personal/interview/backend-api:latest
