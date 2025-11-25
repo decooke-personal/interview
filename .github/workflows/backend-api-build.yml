@@ -1,4 +1,4 @@
-name: Create and push Docker image
+name: Build and push backend-api
 
 on:
   workflow_dispatch:
@@ -15,6 +15,7 @@ jobs:
       packages: write
       attestations: write
       id-token: write
+      
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -25,12 +26,13 @@ jobs:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: "{{defaultContext}}:sre/app"
           push: true
-          tags: ghcr.io/decooke-personal/interview/backend-api:latest
+          tags: ${{ env.REGISTRY }}/decooke-personal/interview/backend-api:latest
