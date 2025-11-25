@@ -2,10 +2,13 @@ name: Build and push backend-api
 
 on:
   workflow_dispatch:
-
+  push:
+    branches:
+      - main    
+  
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository }}/backend-api
   
 jobs:
   build-and-push-image:
@@ -35,4 +38,4 @@ jobs:
         with:
           context: "{{defaultContext}}:sre/app"
           push: true
-          tags: ${{ env.REGISTRY }}/decooke-personal/interview/backend-api:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest
