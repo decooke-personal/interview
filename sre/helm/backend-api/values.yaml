@@ -19,7 +19,7 @@ podAnnotations:
   resource.opentelemetry.io/service.version: "1.0.0" # TODO: get this value from .Chart.appVersion
   resource.opentelemetry.io/deployment.environment.name: "environment" # TODO: get this value from .Release.namespace
 
-serviceAccount: # For RBAC, or possibly IRSC for IAM access to RDS, etc
+serviceAccount: # For RBAC, or possibly IRSC for IAM access to RDS # TODO: add serviceAccount template
   create: false
   automount: true
   annotations: {}
@@ -28,6 +28,10 @@ serviceAccount: # For RBAC, or possibly IRSC for IAM access to RDS, etc
 # TODO: lock down user/group running in container, enforce no root access or escalation, RO root files system, etc
 podSecurityContext: {} # Pod level sec context, pushed to all containers in pods.
 securityContext: {} # Specific container level sec context within a pod. Overrides pod sec context
+
+otel:
+  exporter:
+    endpoint: http://10.104.228.55:4318 # exporter destination for otel data
 
 service:
   type: NodePort

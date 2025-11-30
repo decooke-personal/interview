@@ -4,7 +4,7 @@ metadata:
   name: auto-instrumentation
 spec:
   exporter:
-    endpoint: http://10.104.228.55:4318 # from otel-collector-collector cluster ip
+    endpoint: http://10.104.228.55:4318 # Destination for otel data, should be the ingest endpoint of a monitoring/observability platform
   propagators:
     - tracecontext
     - baggage
