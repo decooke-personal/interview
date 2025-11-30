@@ -1,0 +1,84 @@
+replicaCount: 1
+image:
+  repository: "ghcr.io/decooke-personal/interview/backend-api"
+  pullPolicy: Always # Want to check the repo every launch and not rely solely on local cache
+  tag: "latest" # TODO: make "" which uses appVersion on chart
+imagePullSecrets: 
+  - name: ghcr # Secret must be in same namespace as pods
+nameOverride: "" # default is releaseName-chartName, unless releaseName -contains chartName, then just releaseName
+fullnameOverride: ""
+
+podLabels:
+  app: "backend-api"
+  tier: "backend"
+
+podAnnotations:
+  sidecar.opentelemetry.io/inject: "true" # controls injection of otel collector sidecar into pods
+  instrumentation.opentelemetry.io/inject-java: "true" # Auto instrumentation type
+  resource.opentelemetry.io/service.name: "backend-api"
+  resource.opentelemetry.io/service.version: "1.0.0" # TODO: get this value from .Chart.appVersion
+  resource.opentelemetry.io/deployment.environment.name: "environment" # TODO: get this value from .Release.namespace
+
+serviceAccount: # For RBAC, or possibly IRSC for IAM access to RDS, etc
+  create: false
+  automount: true
+  annotations: {}
+  name: ""
+
+# TODO: lock down user/group running in container, enforce no root access or escalation, RO root files system, etc
+podSecurityContext: {} # Pod level sec context, pushed to all containers in pods.
+securityContext: {} # Specific container level sec context within a pod. Overrides pod sec context
+
+service:
+  type: NodePort
+  port: 8080
+  protocol: TCP
+
+ingress:
+  enabled: false # Exposes backend-api service via an internal or internet-facing loadbalancer
+  type: aws # only type "aws" is supported currently, and assumes aws-load-balancer-controller is installed and configured correctly on the EKS cluster
+  scope: internal # internal or internet-facing
+
+resources: # Pod resource hard/soft limits
+  limits: # Hard limit
+    cpu: 2000m # 2 vCPU
+    memory: 512Mi
+  requests: # Initial launch resources to allocate
+    cpu: 500m # .5 vCPU
+    memory: 128Mi
+
+# startupProbe: # Slow startup check to allow a grace period before other probes start
+#   httpGet:
+#     path: /api/welcome
+#     port: http
+readinessProbe: # Check for pod ready to recieve traffic
+  httpGet:
+    path: /api/welcome # BPs say it should be different from the liveness probe
+    port: http
+  initialDelaySeconds: 10 # delay after pod start, default is 0
+livenessProbe: # Ongoing check for marking pod as unhealthy
+  httpGet:
+    #host: # default is pod IP
+    #scheme: # HTTP or HTTPS, default is HTTP
+    path: /api/welcome # default is "/"
+    port: http
+    #httpHeaders: # Headers to send with probe request
+  initialDelaySeconds: 15 # delay after pod start, default is 0
+  #periodSeconds: 10 # check interval, default is 10
+  #timeoutSeconds: 1 # default is 1
+  #successThreshold: 1 # default is 1
+  #failureThreshold: 3 # default is 3
+  #terminationGracePeriodSeconds: 30 # default is 30
+
+autoscaling: # Pod horizontal scaling TODO: come up with prod appropriate values
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+volumes: []
+volumeMounts: []
+nodeSelector: {} # What nodes pods can run on
+tolerations: [] # What node taints to ignore
+affinity: {} # Attracts pods to nodes based on weighted rules

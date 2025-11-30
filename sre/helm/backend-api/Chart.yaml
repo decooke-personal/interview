@@ -1,0 +1,7 @@
+apiVersion: v2
+name: backend-api
+description: Backend API
+type: application
+version: 1.0.1 # helm chart version
+appVersion: "1.0.1" # deployed application version
+icon: https://argo-cd.readthedocs.io/en/stable/assets/logo.png # stupid linter calling out a missing icon FFS

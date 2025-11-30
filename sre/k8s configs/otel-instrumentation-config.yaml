@@ -1,0 +1,13 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: auto-instrumentation
+spec:
+  exporter:
+    endpoint: http://10.104.228.55:4318 # from otel-collector-collector cluster ip
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1"

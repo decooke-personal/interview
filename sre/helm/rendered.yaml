@@ -1,0 +1,324 @@
+---
+# Source: backend-api/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: release-name-backend-api-otel
+  labels:
+    helm.sh/chart: backend-api-1.0.1
+    app.kubernetes.io/name: backend-api
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.1"
+    app.kubernetes.io/managed-by: Helm
+data:
+  collector.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'otel-collector'
+              scrape_interval: 5s
+              static_configs:
+                - targets: ['localhost:8888'] # Collector self-monitoring endpoint
+
+    processors:
+      batch:
+        send_batch_size: 100
+        timeout: 10s
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 100
+        spike_limit_mib: 20
+
+    exporters:
+      logging:
+        loglevel: debug
+      otlp:
+        endpoint: "your-observability-backend:4317" # Replace with your backend endpoint
+        tls:
+          insecure: true # Use 'false' and configure certs for production
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [logging, otlp]
+        metrics:
+          receivers: [otlp, prometheus]
+          processors: [memory_limiter, batch]
+          exporters: [logging, otlp]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [logging, otlp]
+---
+# Source: backend-api/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-backend-api
+  labels:
+    helm.sh/chart: backend-api-1.0.1
+    app.kubernetes.io/name: backend-api
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: backend-api
+    app.kubernetes.io/instance: release-name
+---
+# Source: backend-api/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: release-name-backend-api
+  labels:
+    helm.sh/chart: backend-api-1.0.1
+    app.kubernetes.io/name: backend-api
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend-api
+      app.kubernetes.io/instance: release-name
+  template:
+    metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-java: "true"
+        resource.opentelemetry.io/deployment.environment.name: "environment"
+        resource.opentelemetry.io/service.name: backend-api
+        resource.opentelemetry.io/service.version: 1.0.0
+        sidecar.opentelemetry.io/inject: "true"
+      labels:
+        helm.sh/chart: backend-api-1.0.1
+        app.kubernetes.io/name: backend-api
+        app.kubernetes.io/instance: release-name
+        app.kubernetes.io/version: "1.0.1"
+        app.kubernetes.io/managed-by: Helm
+        app: backend-api
+        tier: backend
+    spec:
+      imagePullSecrets:
+        - name: ghcr
+      serviceAccountName: default
+      containers:
+        - name: backend-api
+          image: "ghcr.io/decooke-personal/interview/backend-api:latest"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/welcome
+              port: http
+            initialDelaySeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /api/welcome
+              port: http
+            initialDelaySeconds: 10
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 512Mi
+            requests:
+              cpu: 500m
+              memory: 128Mi
+---
+# Source: backend-api/templates/autoscale.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: release-name-backend-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: release-name-backend-api
+  minReplicas: 1
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+# Source: backend-api/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: release-name-backend-api-otel
+  labels:
+    helm.sh/chart: backend-api-1.0.1
+    app.kubernetes.io/name: backend-api
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.1"
+    app.kubernetes.io/managed-by: Helm
+data:
+  collector.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'otel-collector'
+              scrape_interval: 5s
+              static_configs:
+                - targets: ['localhost:8888'] # Collector self-monitoring endpoint
+
+    processors:
+      batch:
+        send_batch_size: 100
+        timeout: 10s
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 100
+        spike_limit_mib: 20
+
+    exporters:
+      logging:
+        loglevel: debug
+      otlp:
+        endpoint: "your-observability-backend:4317" # Replace with your backend endpoint
+        tls:
+          insecure: true # Use 'false' and configure certs for production
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [logging, otlp]
+        metrics:
+          receivers: [otlp, prometheus]
+          processors: [memory_limiter, batch]
+          exporters: [logging, otlp]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [logging, otlp]
+---
+# Source: backend-api/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-backend-api
+  labels:
+    helm.sh/chart: backend-api-1.0.1
+    app.kubernetes.io/name: backend-api
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: backend-api
+    app.kubernetes.io/instance: release-name
+---
+# Source: backend-api/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: release-name-backend-api
+  labels:
+    helm.sh/chart: backend-api-1.0.1
+    app.kubernetes.io/name: backend-api
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend-api
+      app.kubernetes.io/instance: release-name
+  template:
+    metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-java: "true"
+        resource.opentelemetry.io/deployment.environment.name: environment
+        resource.opentelemetry.io/service.name: backend-api
+        resource.opentelemetry.io/service.version: 1.0.0
+        sidecar.opentelemetry.io/inject: "true"
+      labels:
+        helm.sh/chart: backend-api-1.0.1
+        app.kubernetes.io/name: backend-api
+        app.kubernetes.io/instance: release-name
+        app.kubernetes.io/version: "1.0.1"
+        app.kubernetes.io/managed-by: Helm
+        app: backend-api
+        tier: backend
+    spec:
+      imagePullSecrets:
+        - name: ghcr
+      serviceAccountName: default
+      containers:
+        - name: backend-api
+          image: "ghcr.io/decooke-personal/interview/backend-api:latest"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/welcome
+              port: http
+            initialDelaySeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /api/welcome
+              port: http
+            initialDelaySeconds: 10
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 512Mi
+            requests:
+              cpu: 500m
+              memory: 128Mi
+---
+# Source: backend-api/templates/autoscale.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: release-name-backend-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: release-name-backend-api
+  minReplicas: 1
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
