@@ -10,4 +10,4 @@ FROM amazoncorretto:25-al2023-headless
 WORKDIR /app
 COPY --from=build /app/target/*.jar backend-api.jar
 EXPOSE 8080
-CMD ["java", "-jar", "backend-api.jar"]
+CMD ["java", "--add-opens", "java.base/java.lang=ALL-UNNAMED", "-jar", "backend-api.jar"]
